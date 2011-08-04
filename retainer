@@ -1,18 +1,18 @@
 #!/bin/bash
 function usage {
 cat <<USAGE
- USAGE: retainer <source data dir> <git archive dir>?
+ USAGE: retainer <source data dir> <git repository dir>
 
-  Append the contents of <source data dir> to the Git repository. If no Git
-  respository is given, we search for one starting from the present working
-  directory.
+  Append the contents of <source data dir> to the record retained in the Git
+  repository directory. Useful for aggregating logs, mail and other multfile,
+  append-only collections of data.
 
 USAGE
 }
 
 function chgit {
-  git_archive_data="$1"
-  source_directory="$2"
+  source_directory="$1"
+  git_archive_data="$2"
   shift ; shift
   git --git-dir="$(readlink -f "$git_archive_data")" \
       --work-tree="$(readlink -f "$source_directory")" "$@"
@@ -20,7 +20,13 @@ function chgit {
 
 function retain {
   chgit "$1" "$2" add .
-  chgit "$1" "$2" commit -m "${3-Retained by script.}"
+  if chgit "$1" "$2" status --porcelain | egrep -q '^[MACR]'
+  then
+    echo 'Files were found to append; committing.' 1>&2
+    chgit "$1" "$2" commit -m "${3-Retained by script.}"
+  else
+    echo 'No changes; skipping commit.' 1>&2
+  fi
 }
 
 
@@ -33,11 +39,6 @@ then
       -h|'-?'|--help)           usage ; exit ;;
     esac
   done
-  if [[ -z ${2+isset} ]]
-  then
-    retain "$1" .  # Assume we are in a bare repo.
-  else
-    retain "$1" "$2"
-  fi
+  retain "$1" "$2"
 fi
 
