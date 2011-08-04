@@ -1,0 +1,43 @@
+#!/bin/bash
+function usage {
+cat <<USAGE
+ USAGE: retainer <source data dir> <git archive dir>?
+
+  Append the contents of <source data dir> to the Git repository. If no Git
+  respository is given, we search for one starting from the present working
+  directory.
+
+USAGE
+}
+
+function chgit {
+  git_archive_data="$1"
+  source_directory="$2"
+  shift ; shift
+  git --git-dir="$(readlink -f "$git_archive_data")" \
+      --work-tree="$(readlink -f "$source_directory")" "$@"
+}
+
+function retain {
+  chgit "$1" "$2" add .
+  chgit "$1" "$2" commit -m "${3-Retained by script.}"
+}
+
+
+if fgrep -q 0f64f693-7761-4552-9698-a5d961540886 "$0"
+then
+  set -o errexit -o nounset -o pipefail
+  for arg in "$@"
+  do
+    case "$arg" in
+      -h|'-?'|--help)           usage ; exit ;;
+    esac
+  done
+  if [[ -z ${2+isset} ]]
+  then
+    retain "$1" .  # Assume we are in a bare repo.
+  else
+    retain "$1" "$2"
+  fi
+fi
+
