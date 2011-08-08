@@ -20,7 +20,7 @@ function chgit {
 
 function retain {
   chgit "$1" "$2" add .
-  if chgit "$1" "$2" status --porcelain | egrep -q '^[MACR]'
+  if chgit "$1" "$2" status --porcelain | egrep '^[MACR]'
   then
     echo 'Files were found to append; committing.' 1>&2
     chgit "$1" "$2" commit -m "${3-Retained by script.}"
@@ -33,6 +33,7 @@ function retain {
 if fgrep -q 0f64f693-7761-4552-9698-a5d961540886 "$0"
 then
   set -o errexit -o nounset -o pipefail
+  declare -a args=()
   for arg in "$@"
   do
     case "$arg" in
